@@ -1,0 +1,862 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { readFooterMenu, readMainMenu } from '../../lib/menu-data';
+import { listPagesForDashboard } from '../../lib/pages-admin-list';
+
+export const prerender = false;
+
+const mainMenu = await readMainMenu();
+const footerMenu = await readFooterMenu();
+const availablePages = (await listPagesForDashboard()).map((p) => {
+	const slugBase = p.relativePath.replace(/\.(md|mdx)$/i, '');
+	return {
+		label: p.draft ? `${p.title} (rascunho)` : p.title,
+		url: `/${slugBase}`,
+	};
+});
+const socialPlatforms = [
+	{ id: 'instagram', label: 'Instagram', baseUrl: 'https://instagram.com/' },
+	{ id: 'facebook', label: 'Facebook', baseUrl: 'https://facebook.com/' },
+	{ id: 'youtube', label: 'YouTube', baseUrl: 'https://youtube.com/@' },
+	{ id: 'linkedin', label: 'LinkedIn', baseUrl: 'https://linkedin.com/in/' },
+	{ id: 'x', label: 'X (Twitter)', baseUrl: 'https://x.com/' },
+	{ id: 'tiktok', label: 'TikTok', baseUrl: 'https://www.tiktok.com/@' },
+	{ id: 'github', label: 'GitHub', baseUrl: 'https://github.com/' },
+];
+---
+
+<DashboardLayout
+	title="Menus — Admin"
+	heading="Menus"
+	sectionTitle="Navegação"
+	sectionActionLabel="Adicionar Novo"
+	sectionActionHref="#form-add-main"
+>
+	<div class="space-y-6">
+		<div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+			<p class="text-sm text-slate-600">
+				Ficheiros:{' '}
+				<code class="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-xs text-slate-800">menu-main.json</code> ·{' '}
+				<code class="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-xs text-slate-800">menu-footer.json</code>. Arrasta pela alça para ordenar.
+			</p>
+		</div>
+			<div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3 mb-6">
+				<div class="flex gap-0 border-b border-transparent" role="tablist" aria-label="Menu a editar">
+					<button
+						type="button"
+						id="tab-main"
+						role="tab"
+						aria-selected="true"
+						aria-controls="panel-main"
+						class="relative z-[1] rounded-t-xl border border-b-0 border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-[inset_0_-1px_0_0_white]"
+					>
+						Menu Principal
+					</button>
+					<button
+						type="button"
+						id="tab-footer"
+						role="tab"
+						aria-selected="false"
+						aria-controls="panel-footer"
+						class="relative z-[1] rounded-t-xl border border-transparent border-b-slate-200 bg-slate-100 px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-200/80 hover:text-slate-900"
+					>
+						Menu de Rodapé
+					</button>
+				</div>
+				<div class="flex flex-wrap items-center gap-2">
+					<a
+						href="#footer"
+						class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#6D28D9]"
+					>
+						Criar menu de rodapé
+					</a>
+					<button
+						type="button"
+						id="btn-save-menu"
+						class="rounded-xl bg-[#6D28D9] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors duration-200 ease-out hover:bg-[#5b21b6] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#6D28D9]"
+					>
+						Salvar Menu
+					</button>
+				</div>
+			</div>
+
+			<p id="save-status" class="text-sm text-neutral-600 mb-6 min-h-[1.25rem]" role="status" aria-live="polite"></p>
+
+			<!-- Painel: Menu Principal -->
+			<div
+				id="panel-main"
+				role="tabpanel"
+				aria-labelledby="tab-main"
+				class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
+			>
+				<div class="lg:grid lg:grid-cols-[minmax(260px,300px)_1fr] lg:gap-8 lg:items-start">
+					<div class="mb-8 lg:mb-0 lg:sticky lg:top-24 space-y-4">
+						<h2 class="text-lg font-semibold text-neutral-900">Menu Principal</h2>
+						<form id="form-add-main" class="space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm">
+							<p class="text-sm font-medium text-neutral-800">Adicionar link</p>
+							<div>
+								<label for="add-main-existing-page" class="block text-xs font-semibold text-neutral-700 mb-1">Usar página existente</label>
+								<select
+									id="add-main-existing-page"
+									class="w-full rounded border border-neutral-300 px-3 py-2 text-sm bg-white"
+								>
+									<option value="">Seleciona uma página…</option>
+									{
+										availablePages.map((page) => (
+											<option value={JSON.stringify(page)}>{page.label} ({page.url})</option>
+										))
+									}
+								</select>
+								<button
+									type="button"
+									id="btn-add-main-selected-page"
+									class="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#6D28D9]"
+								>
+									Adicionar página selecionada
+								</button>
+							</div>
+							<div class="rounded-lg border border-slate-200 bg-white p-3">
+								<p class="mb-2 text-xs font-semibold text-neutral-700">Adicionar rede social</p>
+								<div class="space-y-2">
+									<select id="add-main-social-platform" class="w-full rounded border border-neutral-300 px-3 py-2 text-sm bg-white">
+										<option value="">Seleciona a rede…</option>
+										{
+											socialPlatforms.map((social) => (
+												<option value={social.id} data-base-url={social.baseUrl} data-social-label={social.label}>
+													{social.label}
+												</option>
+											))
+										}
+									</select>
+									<input
+										id="add-main-social-handle"
+										type="text"
+										maxlength="180"
+										autocomplete="off"
+										class="w-full rounded border border-neutral-300 px-3 py-2 text-sm bg-white"
+										placeholder="utilizador ou URL completa"
+									/>
+									<button
+										type="button"
+										id="btn-add-main-social"
+										class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#6D28D9]"
+									>
+										Adicionar rede social
+									</button>
+								</div>
+							</div>
+							<div>
+								<label for="add-main-label" class="block text-xs font-semibold text-neutral-700 mb-1">Label</label>
+								<input
+									id="add-main-label"
+									type="text"
+									maxlength="120"
+									required
+									autocomplete="off"
+									class="w-full rounded border border-neutral-300 px-3 py-2 text-sm bg-white"
+									placeholder="Ex.: Blog"
+								/>
+							</div>
+							<div>
+								<label for="add-main-url" class="block text-xs font-semibold text-neutral-700 mb-1">URL</label>
+								<input
+									id="add-main-url"
+									type="text"
+									maxlength="512"
+									required
+									autocomplete="off"
+									class="w-full rounded border border-neutral-300 px-3 py-2 text-sm font-mono bg-white"
+									placeholder="/blog"
+								/>
+							</div>
+							<button
+								type="submit"
+								class="w-full rounded-xl bg-[#6D28D9] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors duration-200 ease-out hover:bg-[#5b21b6] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#6D28D9]"
+							>
+								Adicionar à lista
+							</button>
+						</form>
+					</div>
+					<div class="min-w-0">
+						<h3 class="mb-3 text-sm font-semibold text-slate-800">Itens (arrastar para ordenar)</h3>
+						<div id="main-sortable-list" class="flex flex-col gap-3 min-h-[3rem]"></div>
+						<p id="main-empty" class="text-sm text-neutral-500 italic py-6 hidden">
+							Nenhum item disponível no momento.
+						</p>
+					</div>
+				</div>
+			</div>
+
+			<!-- Painel: Menu de Rodapé -->
+			<div
+				id="panel-footer"
+				role="tabpanel"
+				aria-labelledby="tab-footer"
+				hidden
+				class="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
+			>
+				<div class="lg:grid lg:grid-cols-[minmax(260px,300px)_1fr] lg:gap-8 lg:items-start">
+					<div class="mb-8 lg:mb-0 lg:sticky lg:top-24 space-y-4">
+						<h2 class="text-lg font-semibold text-neutral-900">Menu de Rodapé</h2>
+						<form id="form-add-footer" class="space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm">
+							<p class="text-sm font-medium text-neutral-800">Adicionar link</p>
+							<div>
+								<label for="add-footer-existing-page" class="block text-xs font-semibold text-neutral-700 mb-1">Usar página existente</label>
+								<select
+									id="add-footer-existing-page"
+									class="w-full rounded border border-neutral-300 px-3 py-2 text-sm bg-white"
+								>
+									<option value="">Seleciona uma página…</option>
+									{
+										availablePages.map((page) => (
+											<option value={JSON.stringify(page)}>{page.label} ({page.url})</option>
+										))
+									}
+								</select>
+								<button
+									type="button"
+									id="btn-add-footer-selected-page"
+									class="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#6D28D9]"
+								>
+									Adicionar página selecionada
+								</button>
+							</div>
+							<div class="rounded-lg border border-slate-200 bg-white p-3">
+								<p class="mb-2 text-xs font-semibold text-neutral-700">Adicionar rede social</p>
+								<div class="space-y-2">
+									<select id="add-footer-social-platform" class="w-full rounded border border-neutral-300 px-3 py-2 text-sm bg-white">
+										<option value="">Seleciona a rede…</option>
+										{
+											socialPlatforms.map((social) => (
+												<option value={social.id} data-base-url={social.baseUrl} data-social-label={social.label}>
+													{social.label}
+												</option>
+											))
+										}
+									</select>
+									<input
+										id="add-footer-social-handle"
+										type="text"
+										maxlength="180"
+										autocomplete="off"
+										class="w-full rounded border border-neutral-300 px-3 py-2 text-sm bg-white"
+										placeholder="utilizador ou URL completa"
+									/>
+									<button
+										type="button"
+										id="btn-add-footer-social"
+										class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#6D28D9]"
+									>
+										Adicionar rede social
+									</button>
+								</div>
+							</div>
+							<div>
+								<label for="add-footer-label" class="block text-xs font-semibold text-neutral-700 mb-1">Label</label>
+								<input
+									id="add-footer-label"
+									type="text"
+									maxlength="120"
+									required
+									autocomplete="off"
+									class="w-full rounded border border-neutral-300 px-3 py-2 text-sm bg-white"
+									placeholder="Ex.: Contactos"
+								/>
+							</div>
+							<div>
+								<label for="add-footer-url" class="block text-xs font-semibold text-neutral-700 mb-1">URL</label>
+								<input
+									id="add-footer-url"
+									type="text"
+									maxlength="512"
+									required
+									autocomplete="off"
+									class="w-full rounded border border-neutral-300 px-3 py-2 text-sm font-mono bg-white"
+									placeholder="/contactos"
+								/>
+							</div>
+							<div>
+								<label for="add-footer-column" class="block text-xs font-semibold text-neutral-700 mb-1">Coluna</label>
+								<select id="add-footer-column" class="w-full rounded border border-neutral-300 px-3 py-2 text-sm bg-white">
+									<option value="institutional">Institucional</option>
+									<option value="useful">Links úteis</option>
+								</select>
+							</div>
+							<button
+								type="submit"
+								class="w-full rounded-xl bg-[#6D28D9] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors duration-200 ease-out hover:bg-[#5b21b6] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#6D28D9]"
+							>
+								Adicionar à lista
+							</button>
+						</form>
+					</div>
+					<div class="min-w-0">
+						<h3 class="mb-3 text-sm font-semibold text-slate-800">Itens (arrastar para ordenar)</h3>
+						<div id="footer-sortable-list" class="flex flex-col gap-3 min-h-[3rem]"></div>
+						<p id="footer-empty" class="text-sm text-neutral-500 italic py-6 hidden">
+							Nenhum item disponível no momento.
+						</p>
+					</div>
+				</div>
+			</div>
+	</div>
+
+	<style is:global>
+		.menu-sortable-ghost {
+			opacity: 0.4;
+			background: rgb(239 246 255);
+			border: 2px dashed rgb(96 165 250) !important;
+			border-radius: 0.75rem;
+		}
+		.menu-sortable-drag {
+			box-shadow:
+				0 12px 40px -10px rgb(37 99 235 / 0.35),
+				0 0 0 2px rgb(59 130 246);
+			border-radius: 0.75rem;
+			opacity: 0.98;
+		}
+	</style>
+
+	<script
+		is:inline
+		define:vars={{ initialMain: mainMenu, initialFooter: footerMenu, availablePages }}
+	>
+		globalThis.__menusInitialMain = initialMain;
+		globalThis.__menusInitialFooter = initialFooter;
+		globalThis.__menusAvailablePages = availablePages;
+	</script>
+
+	<script>
+		import Sortable from 'sortablejs';
+		import { actions } from 'astro:actions';
+		import { uiStatusMessages } from '../../lib/ui-status-messages';
+
+		const GRIP_SVG = `
+			<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="text-neutral-400" aria-hidden="true">
+				<circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/>
+			</svg>
+		`;
+
+		function ensureId(row) {
+			return typeof row.id === 'string' && row.id.trim() ? row.id.trim() : crypto.randomUUID();
+		}
+
+		const initialMainRaw = (globalThis as Record<string, unknown>).__menusInitialMain;
+		const initialFooterRaw = (globalThis as Record<string, unknown>).__menusInitialFooter;
+		const initialMainRows = Array.isArray(initialMainRaw) ? initialMainRaw : [];
+		const initialFooterRows = Array.isArray(initialFooterRaw) ? initialFooterRaw : [];
+
+		let mainItems = structuredClone(initialMainRows).map((row) => ({
+			id: ensureId(row),
+			label: row.label ?? '',
+			url: row.url ?? '',
+			order: typeof row.order === 'number' ? row.order : 0,
+		}));
+
+		let footerItems = structuredClone(initialFooterRows).map((row) => ({
+			id: ensureId(row),
+			label: row.label ?? '',
+			url: row.url ?? '',
+			order: typeof row.order === 'number' ? row.order : 0,
+			column: row.column === 'useful' ? 'useful' : 'institutional',
+		}));
+
+		let activeTab = 'main';
+		/** @type {Sortable | null} */
+		let sortableMain = null;
+		/** @type {Sortable | null} */
+		let sortableFooter = null;
+
+		const tabMain = document.getElementById('tab-main');
+		const tabFooter = document.getElementById('tab-footer');
+		const panelMain = document.getElementById('panel-main');
+		const panelFooter = document.getElementById('panel-footer');
+		const mainList = document.getElementById('main-sortable-list');
+		const footerList = document.getElementById('footer-sortable-list');
+		const mainEmpty = document.getElementById('main-empty');
+		const footerEmpty = document.getElementById('footer-empty');
+		const saveStatus = document.getElementById('save-status');
+		const mainExistingPage = document.getElementById('add-main-existing-page');
+		const footerExistingPage = document.getElementById('add-footer-existing-page');
+		const mainSocialPlatform = document.getElementById('add-main-social-platform');
+		const mainSocialHandle = document.getElementById('add-main-social-handle');
+		const footerSocialPlatform = document.getElementById('add-footer-social-platform');
+		const footerSocialHandle = document.getElementById('add-footer-social-handle');
+
+		function sortPairs(items) {
+			return items
+				.map((it, idx) => ({ it, idx }))
+				.sort((a, b) => a.it.order - b.it.order || a.it.label.localeCompare(b.it.label, 'pt', { sensitivity: 'base' }));
+		}
+
+		function applyDomOrderToItems(container, itemsRef) {
+			if (!container) return;
+			const ids = [...container.querySelectorAll('[data-menu-item-id]')].map((el) =>
+				el.getAttribute('data-menu-item-id'),
+			);
+			const map = new Map(itemsRef.map((x) => [x.id, x]));
+			const ordered = ids.map((id) => map.get(id)).filter(Boolean);
+			itemsRef.length = 0;
+			ordered.forEach((it, i) => {
+				it.order = i;
+				itemsRef.push(it);
+			});
+		}
+
+		function nextOrder(items) {
+			if (!items.length) return 0;
+			return Math.max(...items.map((x) => x.order)) + 1;
+		}
+
+		function attachSortable(container, itemsRef, assign) {
+			if (!container || container.children.length === 0) return;
+			assign(
+				Sortable.create(container, {
+					handle: '.menu-drag-handle',
+					animation: 180,
+					ghostClass: 'menu-sortable-ghost',
+					dragClass: 'menu-sortable-drag',
+					forceFallback: false,
+					onEnd: () => applyDomOrderToItems(container, itemsRef),
+				}),
+			);
+		}
+
+		function renderMain() {
+			sortableMain?.destroy();
+			sortableMain = null;
+			if (!mainList) return;
+			mainList.replaceChildren();
+			const pairs = sortPairs(mainItems);
+			if (pairs.length === 0) {
+				mainEmpty?.classList.remove('hidden');
+			} else {
+				mainEmpty?.classList.add('hidden');
+			}
+
+			for (const { it } of pairs) {
+				const card = document.createElement('div');
+				card.dataset.menuItemId = it.id;
+				card.className =
+					'flex flex-row items-stretch gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-shadow';
+
+				card.innerHTML = `
+					<button type="button" class="menu-drag-handle flex shrink-0 cursor-grab touch-none items-center justify-center rounded-lg border border-transparent px-1 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 active:cursor-grabbing" aria-label="Arrastar para reordenar">
+						${GRIP_SVG}
+					</button>
+					<div class="grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-2">
+						<div>
+							<label class="mb-0.5 block text-xs font-medium text-neutral-600">Label</label>
+							<input type="text" maxlength="120" class="menu-in-label w-full rounded border border-neutral-200 px-2 py-1.5 text-sm" />
+						</div>
+						<div>
+							<label class="mb-0.5 block text-xs font-medium text-neutral-600">URL</label>
+							<input type="text" maxlength="512" class="menu-in-url w-full rounded border border-neutral-200 px-2 py-1.5 font-mono text-sm" />
+						</div>
+					</div>
+					<button type="button" class="menu-btn-remove shrink-0 self-center rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Remover</button>
+				`;
+
+				const lbl = card.querySelector('.menu-in-label');
+				const url = card.querySelector('.menu-in-url');
+				const rm = card.querySelector('.menu-btn-remove');
+
+				if (lbl instanceof HTMLInputElement) {
+					lbl.value = it.label;
+					lbl.addEventListener('input', () => {
+						const row = mainItems.find((x) => x.id === it.id);
+						if (row) row.label = lbl.value;
+					});
+				}
+				if (url instanceof HTMLInputElement) {
+					url.value = it.url;
+					url.addEventListener('input', () => {
+						const row = mainItems.find((x) => x.id === it.id);
+						if (row) row.url = url.value;
+					});
+				}
+				rm?.addEventListener('click', () => {
+					const ix = mainItems.findIndex((x) => x.id === it.id);
+					if (ix !== -1) mainItems.splice(ix, 1);
+					mainItems.forEach((row, i) => {
+						row.order = i;
+					});
+					renderMain();
+				});
+
+				mainList.appendChild(card);
+			}
+
+			attachSortable(mainList, mainItems, (s) => {
+				sortableMain = s;
+			});
+		}
+
+		function renderFooter() {
+			sortableFooter?.destroy();
+			sortableFooter = null;
+			if (!footerList) return;
+			footerList.replaceChildren();
+			const pairs = sortPairs(footerItems);
+			if (pairs.length === 0) {
+				footerEmpty?.classList.remove('hidden');
+			} else {
+				footerEmpty?.classList.add('hidden');
+			}
+
+			for (const { it } of pairs) {
+				const card = document.createElement('div');
+				card.dataset.menuItemId = it.id;
+				card.className =
+					'flex flex-row items-stretch gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-shadow';
+
+				card.innerHTML = `
+					<button type="button" class="menu-drag-handle flex shrink-0 cursor-grab touch-none items-center justify-center rounded-lg border border-transparent px-1 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 active:cursor-grabbing" aria-label="Arrastar para reordenar">
+						${GRIP_SVG}
+					</button>
+					<div class="grid min-w-0 flex-1 grid-cols-1 gap-2 lg:grid-cols-3">
+						<div>
+							<label class="mb-0.5 block text-xs font-medium text-neutral-600">Label</label>
+							<input type="text" maxlength="120" class="menu-in-label w-full rounded border border-neutral-200 px-2 py-1.5 text-sm" />
+						</div>
+						<div>
+							<label class="mb-0.5 block text-xs font-medium text-neutral-600">URL</label>
+							<input type="text" maxlength="512" class="menu-in-url w-full rounded border border-neutral-200 px-2 py-1.5 font-mono text-sm" />
+						</div>
+						<div>
+							<label class="mb-0.5 block text-xs font-medium text-neutral-600">Coluna</label>
+							<select class="menu-in-col w-full rounded border border-neutral-200 px-2 py-1.5 text-sm bg-white" aria-label="Coluna no rodapé">
+								<option value="institutional">Institucional</option>
+								<option value="useful">Links úteis</option>
+							</select>
+						</div>
+					</div>
+					<button type="button" class="menu-btn-remove shrink-0 self-center rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Remover</button>
+				`;
+
+				const lbl = card.querySelector('.menu-in-label');
+				const url = card.querySelector('.menu-in-url');
+				const col = card.querySelector('.menu-in-col');
+				const rm = card.querySelector('.menu-btn-remove');
+
+				if (lbl instanceof HTMLInputElement) {
+					lbl.value = it.label;
+					lbl.addEventListener('input', () => {
+						const row = footerItems.find((x) => x.id === it.id);
+						if (row) row.label = lbl.value;
+					});
+				}
+				if (url instanceof HTMLInputElement) {
+					url.value = it.url;
+					url.addEventListener('input', () => {
+						const row = footerItems.find((x) => x.id === it.id);
+						if (row) row.url = url.value;
+					});
+				}
+				if (col instanceof HTMLSelectElement) {
+					col.value = it.column === 'useful' ? 'useful' : 'institutional';
+					col.addEventListener('change', () => {
+						const row = footerItems.find((x) => x.id === it.id);
+						if (row) row.column = col.value === 'useful' ? 'useful' : 'institutional';
+					});
+				}
+				rm?.addEventListener('click', () => {
+					const ix = footerItems.findIndex((x) => x.id === it.id);
+					if (ix !== -1) footerItems.splice(ix, 1);
+					footerItems.forEach((row, i) => {
+						row.order = i;
+					});
+					renderFooter();
+				});
+
+				footerList.appendChild(card);
+			}
+
+			attachSortable(footerList, footerItems, (s) => {
+				sortableFooter = s;
+			});
+		}
+
+		function setTab(which) {
+			activeTab = which;
+			const isMain = which === 'main';
+			if (panelMain) panelMain.hidden = !isMain;
+			if (panelFooter) panelFooter.hidden = isMain;
+
+			const activeTabCls =
+				'relative z-[1] rounded-t-xl border border-b-0 border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-[inset_0_-1px_0_0_white]';
+			const idleTabCls =
+				'relative z-[1] rounded-t-xl border border-transparent border-b-slate-200 bg-slate-100 px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-200/80 hover:text-slate-900';
+
+			if (tabMain) {
+				tabMain.setAttribute('aria-selected', String(isMain));
+				tabMain.className = isMain ? activeTabCls : idleTabCls;
+			}
+			if (tabFooter) {
+				tabFooter.setAttribute('aria-selected', String(!isMain));
+				tabFooter.className = !isMain ? activeTabCls : idleTabCls;
+			}
+
+			if (isMain) renderMain();
+			else renderFooter();
+		}
+
+		tabMain?.addEventListener('click', () => setTab('main'));
+		tabFooter?.addEventListener('click', () => setTab('footer'));
+
+		function pageFromSelectValue(raw: string): { label: string; url: string } | null {
+			if (!raw) return null;
+			try {
+				const parsed = JSON.parse(raw) as { label?: unknown; url?: unknown };
+				const label = typeof parsed.label === 'string' ? parsed.label.trim() : '';
+				const url = typeof parsed.url === 'string' ? parsed.url.trim() : '';
+				if (!label || !url) return null;
+				return { label, url };
+			} catch {
+				return null;
+			}
+		}
+
+		function buildSocialUrl(baseUrl: string, handleOrUrl: string): string {
+			const raw = handleOrUrl.trim();
+			if (!raw) return '';
+			if (/^https?:\/\//i.test(raw)) return raw;
+			return `${baseUrl}${raw.replace(/^@+/, '')}`;
+		}
+
+		function selectedSocial(selectEl: HTMLElement | null): { label: string; baseUrl: string } | null {
+			if (!(selectEl instanceof HTMLSelectElement)) return null;
+			const option = selectEl.selectedOptions.item(0);
+			if (!option) return null;
+			const label = option.dataset.socialLabel?.trim() ?? '';
+			const baseUrl = option.dataset.baseUrl?.trim() ?? '';
+			if (!label || !baseUrl) return null;
+			return { label, baseUrl };
+		}
+
+		mainExistingPage?.addEventListener('change', () => {
+			if (!(mainExistingPage instanceof HTMLSelectElement)) return;
+			const selected = pageFromSelectValue(mainExistingPage.value);
+			if (!selected) return;
+			const labelInput = document.getElementById('add-main-label');
+			const urlInput = document.getElementById('add-main-url');
+			if (labelInput instanceof HTMLInputElement) labelInput.value = selected.label;
+			if (urlInput instanceof HTMLInputElement) urlInput.value = selected.url;
+		});
+
+		footerExistingPage?.addEventListener('change', () => {
+			if (!(footerExistingPage instanceof HTMLSelectElement)) return;
+			const selected = pageFromSelectValue(footerExistingPage.value);
+			if (!selected) return;
+			const labelInput = document.getElementById('add-footer-label');
+			const urlInput = document.getElementById('add-footer-url');
+			if (labelInput instanceof HTMLInputElement) labelInput.value = selected.label;
+			if (urlInput instanceof HTMLInputElement) urlInput.value = selected.url;
+		});
+
+		document.getElementById('btn-add-main-selected-page')?.addEventListener('click', () => {
+			if (!(mainExistingPage instanceof HTMLSelectElement)) return;
+			const selected = pageFromSelectValue(mainExistingPage.value);
+			if (!selected) {
+				if (saveStatus) saveStatus.textContent = 'Escolhe uma página na lista acima.';
+				return;
+			}
+			mainItems.push({
+				id: crypto.randomUUID(),
+				label: selected.label,
+				url: selected.url,
+				order: nextOrder(mainItems),
+			});
+			mainExistingPage.selectedIndex = 0;
+			const lab = document.getElementById('add-main-label');
+			const u = document.getElementById('add-main-url');
+			if (lab instanceof HTMLInputElement) lab.value = '';
+			if (u instanceof HTMLInputElement) u.value = '';
+			if (saveStatus) {
+				saveStatus.textContent = `«${selected.label}» adicionado ao menu principal. Clica em «Salvar Menu» para gravar.`;
+			}
+			renderMain();
+		});
+
+		document.getElementById('btn-add-footer-selected-page')?.addEventListener('click', () => {
+			if (!(footerExistingPage instanceof HTMLSelectElement)) return;
+			const selected = pageFromSelectValue(footerExistingPage.value);
+			if (!selected) {
+				if (saveStatus) saveStatus.textContent = 'Escolhe uma página na lista acima.';
+				return;
+			}
+			const colSel = document.getElementById('add-footer-column');
+			const column =
+				colSel instanceof HTMLSelectElement && colSel.value === 'useful' ? 'useful' : 'institutional';
+			footerItems.push({
+				id: crypto.randomUUID(),
+				label: selected.label,
+				url: selected.url,
+				order: nextOrder(footerItems),
+				column,
+			});
+			footerExistingPage.selectedIndex = 0;
+			const lab = document.getElementById('add-footer-label');
+			const u = document.getElementById('add-footer-url');
+			if (lab instanceof HTMLInputElement) lab.value = '';
+			if (u instanceof HTMLInputElement) u.value = '';
+			if (saveStatus) {
+				saveStatus.textContent = `«${selected.label}» adicionado ao rodapé. Clica em «Salvar Menu» para gravar.`;
+			}
+			renderFooter();
+		});
+
+		document.getElementById('btn-add-main-social')?.addEventListener('click', () => {
+			const social = selectedSocial(mainSocialPlatform);
+			if (!(mainSocialHandle instanceof HTMLInputElement) || !social) {
+				if (saveStatus) saveStatus.textContent = 'Seleciona a rede social e preenche o utilizador/URL.';
+				return;
+			}
+			const url = buildSocialUrl(social.baseUrl, mainSocialHandle.value);
+			if (!url) {
+				if (saveStatus) saveStatus.textContent = 'Preenche o utilizador/URL da rede social.';
+				return;
+			}
+			mainItems.push({
+				id: crypto.randomUUID(),
+				label: social.label,
+				url,
+				order: nextOrder(mainItems),
+			});
+			if (mainSocialPlatform instanceof HTMLSelectElement) mainSocialPlatform.selectedIndex = 0;
+			mainSocialHandle.value = '';
+			if (saveStatus) saveStatus.textContent = `«${social.label}» adicionado ao menu principal. Clica em «Salvar Menu».`;
+			renderMain();
+		});
+
+		document.getElementById('btn-add-footer-social')?.addEventListener('click', () => {
+			const social = selectedSocial(footerSocialPlatform);
+			if (!(footerSocialHandle instanceof HTMLInputElement) || !social) {
+				if (saveStatus) saveStatus.textContent = 'Seleciona a rede social e preenche o utilizador/URL.';
+				return;
+			}
+			const url = buildSocialUrl(social.baseUrl, footerSocialHandle.value);
+			if (!url) {
+				if (saveStatus) saveStatus.textContent = 'Preenche o utilizador/URL da rede social.';
+				return;
+			}
+			const colSel = document.getElementById('add-footer-column');
+			const column =
+				colSel instanceof HTMLSelectElement && colSel.value === 'useful' ? 'useful' : 'institutional';
+			footerItems.push({
+				id: crypto.randomUUID(),
+				label: social.label,
+				url,
+				order: nextOrder(footerItems),
+				column,
+			});
+			if (footerSocialPlatform instanceof HTMLSelectElement) footerSocialPlatform.selectedIndex = 0;
+			footerSocialHandle.value = '';
+			if (saveStatus) saveStatus.textContent = `«${social.label}» adicionado ao rodapé. Clica em «Salvar Menu».`;
+			renderFooter();
+		});
+
+		document.getElementById('form-add-main')?.addEventListener('submit', (e) => {
+			e.preventDefault();
+			const lab = document.getElementById('add-main-label');
+			const u = document.getElementById('add-main-url');
+			if (!(lab instanceof HTMLInputElement) || !(u instanceof HTMLInputElement)) return;
+			const label = lab.value.trim();
+			const url = u.value.trim();
+			if (!label || !url) return;
+			mainItems.push({ id: crypto.randomUUID(), label, url, order: nextOrder(mainItems) });
+			lab.value = '';
+			u.value = '';
+			renderMain();
+		});
+
+		document.getElementById('form-add-footer')?.addEventListener('submit', (e) => {
+			e.preventDefault();
+			const lab = document.getElementById('add-footer-label');
+			const u = document.getElementById('add-footer-url');
+			const colSel = document.getElementById('add-footer-column');
+			if (!(lab instanceof HTMLInputElement) || !(u instanceof HTMLInputElement)) return;
+			const column =
+				colSel instanceof HTMLSelectElement && colSel.value === 'useful' ? 'useful' : 'institutional';
+			const label = lab.value.trim();
+			const url = u.value.trim();
+			if (!label || !url) return;
+			footerItems.push({
+				id: crypto.randomUUID(),
+				label,
+				url,
+				order: nextOrder(footerItems),
+				column,
+			});
+			lab.value = '';
+			u.value = '';
+			renderFooter();
+		});
+
+		async function saveItems(menu, items, statusEl) {
+			if (statusEl) statusEl.textContent = '';
+
+			if (menu === 'main' && mainList) applyDomOrderToItems(mainList, mainItems);
+			if (menu === 'footer' && footerList) applyDomOrderToItems(footerList, footerItems);
+
+			const clean = items.map((x) => {
+				const idStr = typeof x.id === 'string' ? x.id.trim() : '';
+				const row = {
+					id: idStr || crypto.randomUUID(),
+					label: x.label.trim(),
+					url: x.url.trim(),
+					order: typeof x.order === 'number' && Number.isFinite(x.order) ? Math.trunc(x.order) : 0,
+				};
+				if (menu === 'footer') {
+					row.column = x.column === 'useful' ? 'useful' : 'institutional';
+				}
+				return row;
+			});
+
+			for (let i = 0; i < clean.length; i++) {
+				const row = clean[i];
+				if (!row.id) {
+					if (statusEl) statusEl.textContent = `Id em falta na linha ${i + 1}.`;
+					return false;
+				}
+				if (!row.label) {
+					if (statusEl) statusEl.textContent = `Label em falta no item ${i + 1}.`;
+					return false;
+				}
+				if (!row.url) {
+					if (statusEl) statusEl.textContent = `URL em falta no item ${i + 1}.`;
+					return false;
+				}
+			}
+
+			try {
+				const { error } = await actions.saveMenu({ menu, items: clean });
+				if (error) {
+					if (statusEl) statusEl.textContent = error.message;
+					return false;
+				}
+				if (statusEl) {
+					statusEl.textContent = uiStatusMessages.success.menuSaved(menu);
+				}
+				return true;
+			} catch (err) {
+				if (statusEl) statusEl.textContent = err instanceof Error ? err.message : 'Erro ao guardar.';
+				return false;
+			}
+		}
+
+		document.getElementById('btn-save-menu')?.addEventListener('click', () => {
+			if (activeTab === 'main') {
+				saveItems('main', mainItems, saveStatus);
+			} else {
+				saveItems('footer', footerItems, saveStatus);
+			}
+		});
+
+		if (window.location.hash === '#footer' || window.location.hash === '#panel-footer') {
+			setTab('footer');
+		} else {
+			setTab('main');
+		}
+	</script>
+</DashboardLayout>
